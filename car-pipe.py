@@ -6,6 +6,25 @@ import json
 import sys
 import datetime as dt
 
+
+
+def main(params):
+
+	if params[0] == 'getRefinements':
+		getRefinements()
+
+	elif params[0] == 'saveDocs':
+		getCarDocuments()
+
+	elif params[0] == 'getDoc':
+		convertDocuments()
+
+	else:
+		print 'Help information'
+
+	print 'Done'
+
+
 def getData(page, mime = 'application/json', **kwargs):
 
 	# build URL
@@ -33,84 +52,62 @@ def getData(page, mime = 'application/json', **kwargs):
 		return
 
 	return data
-	
 
-def main(params):
 
-	# get list of possible refinements
-	if 'refinements' in params:
-		data = getData('/catalogitems/refinements')
-		for category in data['categories']:
-			print '{} ({})'.format(category['about'], category['refinements'][0]['name'])
-			print '\t',
-			for ref in category['refinements']:
-				print ref['value']+',',
-			print
+def getRefinements():
+	'''get list of possible refinements'''
 
-	# get metadata for documents
-	if 'saveFreeMetadata' in params:
-		data = getData('/catalogitems', distributionrestriction='A', field_list='identifier,formats')
-		metadata = []
-		for document in data['catalogitems']:
-			for f in document['formats']:
-				if f['path'] == 'metadata.xml':
-					metadata.append(document)
+	data = getData('/catalogitems/refinements')
+	for category in data['categories']:
+		print '{} ({})'.format(category['about'], category['refinements'][0]['name'])
+		print '\t',
+		for ref in category['refinements']:
+			print ref['value']+',',
+		print
 
-		# retrieve metadata from available documents
-		md = metadata[0]
-		mdlink = ''
-		for f in md['formats']:
-			if f['path'] == 'metadata.xml':
-				mdlink = f['link']['href']
 
-		xml = getData( mdlink, 'application/xml' )
-		ofp = open('data/'+md['identifier']+'-metadata.xml', 'w')
-		ofp.write( etree.tostring(xml) )
+def getCarDocuments():
+	'''get sample set of CAR metadata'''
+
+	field_list = 'id,status,title,summary,aliases,approvaldate,postdate,discoverable,new,restricted,official,catalogtype,producttype,knowledgecenter,distributionrestriction,poc,keyword,jobspeciality,links,formats,download'
+	docs = getData('/catalogitems', distributionrestriction='A', status='R', field_list=field_list, pagesize=25)
+	for doc in docs['catalogitems']:
+		ofp = open('data/'+doc['id'].replace('/','_')+'.json', 'w')
+		ofp.write( json.dumps(doc, indent=4) )
 		ofp.close()
-			
 
-	if 'saveDocs' in params:
 
-		field_list = 'id,status,title,summary,aliases,approvaldate,postdate,discoverable,new,restricted,official,catalogtype,producttype,knowledgecenter,distributionrestriction,poc,keyword,jobspeciality,links,formats,download'
-		docs = getData('/catalogitems', distributionrestriction='A', status='R', field_list=field_list, pagesize=25)
-		for doc in docs['catalogitems']:
-			ofp = open('data/'+doc['id'].replace('/','_')+'.json', 'w')
-			ofp.write( json.dumps(doc, indent=4) )
-			ofp.close()
+def convertDocuments():
 
-	if 'getDoc' in params:
+	# retrieve document from army registry
+	field_list = 'id,status,identifier,title,summary,postdate,catalogtype,producttype,knowledgecenter,distributionrestriction,poc,keywords,jobspeciality,formats'
+	keys = [
+		'100.ATSC/1C68769C-ADAD-450E-A7C3-7FFA73E027BD-1362536487263',
+		'100.ATSC/22F3C59A-4ABD-4D9E-A1BE-E80B188FD1AC-1373890928670',
+		'100.ATSC/2E53554D-6208-43FD-BA1E-193F8F9D7882-1373394427795'
+	]
 
-		# retrieve document from army registry
-		field_list = 'id,status,identifier,title,summary,postdate,catalogtype,producttype,knowledgecenter,distributionrestriction,poc,keywords,jobspeciality,formats'
-		keys = [
-			'100.ATSC/1C68769C-ADAD-450E-A7C3-7FFA73E027BD-1362536487263',
-			'100.ATSC/22F3C59A-4ABD-4D9E-A1BE-E80B188FD1AC-1373890928670',
-			'100.ATSC/2E53554D-6208-43FD-BA1E-193F8F9D7882-1373394427795'
-		]
+	if len(params) > 1:
+		keys = params[1:]
 
-		if len(params) > 1:
-			keys = params[1:]
+	for key in keys:
+		doc = getData('/catalogitem/'+key, field_list=field_list)
+		doc = doc['catalogitem']
 
-		for key in keys:
-			doc = getData('/catalogitem/'+key, field_list=field_list)
-			doc = doc['catalogitem']
+		lrmi = toLRMI(doc)
+		envelope = toLR(lrmi)
 
-			lrmi = toLRMI(doc)
-			envelope = toLR(lrmi)
+		# write to file
+		ofp = open('data/'+doc['title'].replace('/','_')+'-original.json', 'w')
+		ofp.write( json.dumps(doc, indent=4) )
+		ofp.close()
+		ofp = open('data/'+doc['title'].replace('/','_')+'-envelope.json', 'w')
+		ofp.write( json.dumps(envelope, indent=4) )
+		ofp.close()
 
-			# write to file
-			ofp = open('data/'+doc['title'].replace('/','_')+'-original.json', 'w')
-			ofp.write( json.dumps(doc, indent=4) )
-			ofp.close()
-			ofp = open('data/'+doc['title'].replace('/','_')+'-envelope.json', 'w')
-			ofp.write( json.dumps(envelope, indent=4) )
-			ofp.close()
-
-			#print json.dumps(doc, indent=4, sort_keys=True)
-
-	print 'Done'
 
 def toLR(metadata):
+	'''generate an LR envelope based on LRMI metadata'''
 
 	document = {
 		'doc_type': 'resource_data',
@@ -134,8 +131,8 @@ def toLR(metadata):
 	return document
 
 
-
 def toLRMI(carDoc):
+	'''generate LRMI metadata based on CAR metadata'''
 
 	# pull in general information
 	document = {
@@ -186,6 +183,7 @@ def toLRMI(carDoc):
 			document['properties']['url'] = f['link']['href']
 
 	return document
+
 
 if __name__ == '__main__':
 	main(sys.argv[1:])
