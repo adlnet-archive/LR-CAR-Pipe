@@ -5,10 +5,16 @@ from lxml import etree
 import json
 import sys
 import datetime as dt
-
+import time
+import oauth2 as oauth
 
 
 def main(params):
+
+	if len(params) > 1:
+		key = params[1]
+	else:
+		key = '100.ATSC/0721EED9-F5C8-493D-93D7-D51EB0BB2A24-1335889302182'
 
 	if params[0] == 'getRefinements':
 		getRefinements()
@@ -16,9 +22,13 @@ def main(params):
 	elif params[0] == 'saveDocs':
 		getCarDocuments()
 
-	elif params[0] == 'getDoc':
-		convertDocuments()
+	elif params[0] == 'convertDoc':
+		convertDocument(key)
 
+	elif params[0] == 'convertAndPublish':
+		envelope = convertDocument(key)
+		publishDocument(envelope)
+		
 	else:
 		print 'Help information'
 
@@ -77,33 +87,50 @@ def getCarDocuments():
 		ofp.close()
 
 
-def convertDocuments():
+def convertDocument(key):
 
 	# retrieve document from army registry
 	field_list = 'id,status,identifier,title,summary,postdate,catalogtype,producttype,knowledgecenter,distributionrestriction,poc,keywords,jobspeciality,formats'
-	keys = [
-		'100.ATSC/1C68769C-ADAD-450E-A7C3-7FFA73E027BD-1362536487263',
-		'100.ATSC/22F3C59A-4ABD-4D9E-A1BE-E80B188FD1AC-1373890928670',
-		'100.ATSC/2E53554D-6208-43FD-BA1E-193F8F9D7882-1373394427795'
-	]
 
-	if len(params) > 1:
-		keys = params[1:]
+	doc = getData('/catalogitem/'+key, field_list=field_list)
+	doc = doc['catalogitem']
 
-	for key in keys:
-		doc = getData('/catalogitem/'+key, field_list=field_list)
-		doc = doc['catalogitem']
+	lrmi = toLRMI(doc)
+	envelope = toLR(lrmi)		
 
-		lrmi = toLRMI(doc)
-		envelope = toLR(lrmi)
+	# write to file
+	ofp = open('data/'+doc['title'].replace('/','_')+'-original.json', 'w')
+	ofp.write( json.dumps(doc, indent=4) )
+	ofp.close()
+	ofp = open('data/'+doc['title'].replace('/','_')+'-envelope.json', 'w')
+	ofp.write( json.dumps(envelope, indent=4) )
+	ofp.close()
 
-		# write to file
-		ofp = open('data/'+doc['title'].replace('/','_')+'-original.json', 'w')
-		ofp.write( json.dumps(doc, indent=4) )
-		ofp.close()
-		ofp = open('data/'+doc['title'].replace('/','_')+'-envelope.json', 'w')
-		ofp.write( json.dumps(envelope, indent=4) )
-		ofp.close()
+	return envelope
+
+
+def publishDocument(doc):
+
+	publish_packet = {
+		'documents': [doc]
+	}
+	params = {
+		'oauth_version': '1.0',
+		'oauth_nonce': oauth.generate_nonce(),
+		'oauth_timestamp': int(time.time())
+	}
+	consumer = oauth.Consumer('steve.vergenz.ctr@adlnet.gov', 'lws48mTjMySQovJy3qKKqGWr3uxmMdrk')
+	token = oauth.Token('node_sign_token', 'RGIf9sKHVOOcJuZIQaDacwxTejvSqnPq')
+	client = oauth.Client(consumer,token)
+	response, content = client.request(
+		'http://sandbox.learningregistry.org/publish',
+		method = 'POST',
+		body = json.dumps(publish_packet),
+		headers = {'Content-Type': 'application/json'}
+	)
+	print response
+	print content
+
 
 
 def toLR(metadata):
@@ -111,6 +138,12 @@ def toLR(metadata):
 
 	document = {
 		'doc_type': 'resource_data',
+		'doc_version': '0.49.0',
+		'active': True,
+		'TOS': {
+			'submission_TOS': 'http://www.learningregistry.org/tos/cc0/v0-5'
+		},
+
 		'resource_data_type': 'metadata',
 		'payload_placement': 'inline',
 		'payload_schema': ['LRMI'],
