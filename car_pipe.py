@@ -90,7 +90,7 @@ def get_LR_from_CAR_id(id):
 		return query['documents'][0]['doc_ID'], query['documents'][0]['resource_data_description']
 
 
-def to_LR(metadata, id):
+def to_LR(metadata, car_id=None, old_lr_id=None):
 	'''generate an LR envelope based on LRMI metadata'''
 
 	document = {
@@ -106,7 +106,7 @@ def to_LR(metadata, id):
 		'payload_schema': ['LRMI'],
 		'resource_data': metadata,
 
-		'keys': metadata['properties']['keywords'] + [id],
+		'keys': metadata['properties']['keywords'],
 		'resource_locator': metadata['properties']['url'],
 
 		'identity': {
@@ -117,6 +117,12 @@ def to_LR(metadata, id):
 			'submitter_type': 'agent'
 		}
 	}
+
+	if car_id != None:
+		document['keys'] += ['CAR '+car_id]
+
+	if old_lr_id != None:
+		document['replaces'] = [old_lr_id]
 
 	return document
 

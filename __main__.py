@@ -42,7 +42,7 @@ def main():
 		
 		# convert CAR metadata to LR metadata
 		lrmi = cp.to_LRMI(cardoc)
-		envelope = cp.to_LR(lrmi, id='CAR '+cardoc['id'])
+		envelope = cp.to_LR(lrmi, car_id=cardoc['id'])
 		
 		# dump metadata to file and/or/nor screen
 		if args.lr_file != None:
