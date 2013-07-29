@@ -85,9 +85,11 @@ def publish_document(doc):
 
 def get_LR_from_CAR_id(id):
 
-	query = getData('http://sandbox.learningregistry.org/slice', any_tags='CAR '+id)
+	query = get_data('http://sandbox.learningregistry.org/slice', any_tags='CAR '+id)
 	if query['resultCount'] > 0:
-		return query['documents'][0]['doc_ID'], query['documents'][0]['resource_data_description']
+		return query['documents'][0]['resource_data_description']
+	else:
+		return None
 
 
 def to_LR(metadata, car_id=None, old_lr_id=None):

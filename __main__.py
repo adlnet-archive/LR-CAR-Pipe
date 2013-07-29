@@ -54,8 +54,15 @@ def main():
 		# only proceed if document must be published
 		if args.command == 'publish':
 
-			cp.publish_document(envelope)
-		
+			# check if document already exists
+			oldDoc = cp.get_LR_from_CAR_id(cardoc['id'])
+			if oldDoc != None:
+				response = raw_input('Document already in LR with ID "{}". Replace? '.format(oldDoc['doc_ID']))
+				if response.lower() in ['yes','y']:
+					envelope['replaces'] = [oldDoc['doc_ID']]
+					cp.publish_document(envelope)
+			else:
+				cp.publish_document(envelope)
 
 	print
 	print
