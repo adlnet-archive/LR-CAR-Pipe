@@ -36,6 +36,19 @@ def getData(page, mime = 'application/json', **kwargs):
 
 	return data
 
+def getCARDocument(id):
+	
+	field_list = 'id,status,identifier,title,summary,postdate,catalogtype,producttype,knowledgecenter,distributionrestriction,poc,keywords,jobspeciality,formats'
+	doc = getData('/catalogitem/'+id, field_list=field_list)
+	return doc['catalogitem']
+
+
+def dumpToFile(filename, content):
+
+	ofp = open(filename, 'w')
+	ofp.write( json.dumps(content, indent=4) )
+	ofp.close()
+
 
 def getRefinements():
 	'''get list of possible refinements'''
@@ -101,12 +114,11 @@ def publishDocument(doc):
 		body = json.dumps(publish_packet),
 		headers = {'Content-Type': 'application/json'}
 	)
-	print response
 	print content
 
 
 
-def toLR(metadata):
+def toLR(metadata, id):
 	'''generate an LR envelope based on LRMI metadata'''
 
 	document = {
@@ -122,7 +134,7 @@ def toLR(metadata):
 		'payload_schema': ['LRMI'],
 		'resource_data': metadata,
 
-		'keys': metadata['properties']['keywords'],
+		'keys': metadata['properties']['keywords'] + [id],
 		'resource_locator': metadata['properties']['url'],
 
 		'identity': {
