@@ -8,7 +8,7 @@ import datetime as dt
 import time
 import oauth2 as oauth
 
-def getData(page, mime = 'application/json', **kwargs):
+def get_data(page, mime = 'application/json', **kwargs):
 
 	# build URL
 	if page[0] == '/':
@@ -36,33 +36,21 @@ def getData(page, mime = 'application/json', **kwargs):
 
 	return data
 
-def getCARDocument(id):
+def get_CAR_document(id):
 	
 	field_list = 'id,status,identifier,title,summary,postdate,catalogtype,producttype,knowledgecenter,distributionrestriction,poc,keywords,jobspeciality,formats'
-	doc = getData('/catalogitem/'+id, field_list=field_list)
+	doc = get_data('/catalogitem/'+id, field_list=field_list)
 	return doc['catalogitem']
 
 
-def dumpToFile(filename, content):
+def dump_to_file(filename, content):
 
 	ofp = open(filename, 'w')
 	ofp.write( json.dumps(content, indent=4) )
 	ofp.close()
 
 
-def getRefinements():
-	'''get list of possible refinements'''
-
-	data = getData('/catalogitems/refinements')
-	for category in data['categories']:
-		print '{} ({})'.format(category['about'], category['refinements'][0]['name'])
-		print '\t',
-		for ref in category['refinements']:
-			print ref['value']+',',
-		print
-
-
-def getCarDocuments():
+def get_CAR_documents():
 	'''get sample set of CAR metadata'''
 
 	field_list = 'id,status,title,summary,aliases,approvaldate,postdate,discoverable,new,restricted,official,catalogtype,producttype,knowledgecenter,distributionrestriction,poc,keyword,jobspeciality,links,formats,download'
@@ -73,29 +61,7 @@ def getCarDocuments():
 		ofp.close()
 
 
-def convertDocument(key):
-
-	# retrieve document from army registry
-	field_list = 'id,status,identifier,title,summary,postdate,catalogtype,producttype,knowledgecenter,distributionrestriction,poc,keywords,jobspeciality,formats'
-
-	doc = getData('/catalogitem/'+key, field_list=field_list)
-	doc = doc['catalogitem']
-
-	lrmi = toLRMI(doc)
-	envelope = toLR(lrmi)		
-
-	# write to file
-	ofp = open('data/'+doc['title'].replace('/','_')+'-original.json', 'w')
-	ofp.write( json.dumps(doc, indent=4) )
-	ofp.close()
-	ofp = open('data/'+doc['title'].replace('/','_')+'-envelope.json', 'w')
-	ofp.write( json.dumps(envelope, indent=4) )
-	ofp.close()
-
-	return envelope
-
-
-def publishDocument(doc):
+def publish_document(doc):
 
 	publish_packet = {
 		'documents': [doc]
@@ -117,8 +83,14 @@ def publishDocument(doc):
 	print content
 
 
+def get_LR_from_CAR_id(id):
 
-def toLR(metadata, id):
+	query = getData('http://sandbox.learningregistry.org/slice', any_tags='CAR '+id)
+	if query['resultCount'] > 0:
+		return query['documents'][0]['doc_ID'], query['documents'][0]['resource_data_description']
+
+
+def to_LR(metadata, id):
 	'''generate an LR envelope based on LRMI metadata'''
 
 	document = {
@@ -149,7 +121,7 @@ def toLR(metadata, id):
 	return document
 
 
-def toLRMI(carDoc):
+def to_LRMI(carDoc):
 	'''generate LRMI metadata based on CAR metadata'''
 
 	# pull in general information

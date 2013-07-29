@@ -28,11 +28,11 @@ def main():
 	# all commands do this; view only does this
 
 	# retrieve CAR metadata
-	cardoc = cp.getCARDocument(args.doc_id)
+	cardoc = cp.get_CAR_document(args.doc_id)
 
 	# dump metadata to file and/or/nor screen
 	if args.car_file != None:
-		cp.dumpToFile(args.car_file, cardoc);
+		cp.dump_to_file(args.car_file, cardoc);
 	if args.command == 'view' or args.verbose:
 		print 10*'*', 'Input', 10*'*'
 		print json.dumps(cardoc, indent=4)
@@ -41,12 +41,12 @@ def main():
 	if args.command in ['convert','publish']:
 		
 		# convert CAR metadata to LR metadata
-		lrmi = cp.toLRMI(cardoc)
-		envelope = cp.toLR(lrmi, id=cardoc['id'])
+		lrmi = cp.to_LRMI(cardoc)
+		envelope = cp.to_LR(lrmi, id='CAR '+cardoc['id'])
 		
 		# dump metadata to file and/or/nor screen
 		if args.lr_file != None:
-			cp.dumpToFile(args.lr_file, envelope)
+			cp.dump_to_file(args.lr_file, envelope)
 		if args.command == 'convert' or args.verbose:
 			print 10*'*', 'Output', 10*'*'
 			print json.dumps(envelope, indent=4)
@@ -54,7 +54,7 @@ def main():
 		# only proceed if document must be published
 		if args.command == 'publish':
 
-			cp.publishDocument(envelope)
+			cp.publish_document(envelope)
 		
 
 	print
