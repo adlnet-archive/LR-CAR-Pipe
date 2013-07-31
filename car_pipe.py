@@ -20,7 +20,7 @@ def get_data(page, mime = 'application/json', **kwargs):
 	if len(kwargs) > 0:
 		url += '?' + urlencode(kwargs)
 
-	print 'Retrieving', url
+	#print 'Retrieving', url
 	request = Request(url, headers = {'Accept': mime})
 	try:
 		io = urlopen(request)
@@ -71,6 +71,7 @@ def publish_document(doc):
 		'oauth_nonce': oauth.generate_nonce(),
 		'oauth_timestamp': int(time.time())
 	}
+
 	consumer = oauth.Consumer('steve.vergenz.ctr@adlnet.gov', 'lws48mTjMySQovJy3qKKqGWr3uxmMdrk')
 	token = oauth.Token('node_sign_token', 'RGIf9sKHVOOcJuZIQaDacwxTejvSqnPq')
 	client = oauth.Client(consumer,token)
@@ -80,7 +81,11 @@ def publish_document(doc):
 		body = json.dumps(publish_packet),
 		headers = {'Content-Type': 'application/json'}
 	)
-	print content
+	
+	if content['OK'] == True:
+		return content['document_results'][0]['doc_ID']
+	else:
+		return None
 
 
 def get_LR_from_CAR_id(id):
@@ -96,16 +101,16 @@ def to_LR(metadata, car_id=None, old_lr_id=None):
 	'''generate an LR envelope based on LRMI metadata'''
 
 	document = {
-		'doc_type': 'resource_data',
-		'doc_version': '0.49.0',
+		'doc_type': u'resource_data',
+		'doc_version': u'0.49.0',
 		'active': True,
 		'TOS': {
-			'submission_TOS': 'http://www.learningregistry.org/tos/cc0/v0-5'
+			'submission_TOS': u'http://www.learningregistry.org/tos/cc0/v0-5'
 		},
 
-		'resource_data_type': 'metadata',
-		'payload_placement': 'inline',
-		'payload_schema': ['LRMI'],
+		'resource_data_type': u'metadata',
+		'payload_placement': u'inline',
+		'payload_schema': [u'LRMI'],
 		'resource_data': metadata,
 
 		'keys': metadata['properties']['keywords'],
@@ -113,15 +118,12 @@ def to_LR(metadata, car_id=None, old_lr_id=None):
 
 		'identity': {
 			'owner': metadata['properties']['publisher']['properties']['name'],
-			'curator': 'Central Army Registry (CAR)',
-			'submitter': 'ADL',
-			'signer': 'ADL',
-			'submitter_type': 'agent'
+			'curator': u'Central Army Registry (CAR)'
 		}
 	}
 
 	if car_id != None:
-		document['keys'] += ['CAR '+car_id]
+		document['keys'] += [u'CAR '+car_id]
 
 	if old_lr_id != None:
 		document['replaces'] = [old_lr_id]
@@ -134,15 +136,15 @@ def to_LRMI(carDoc):
 
 	# pull in general information
 	document = {
-		'type': 'http://schema.org/CreativeWork',
+		'type': u'http://schema.org/CreativeWork',
 		'properties': {
 			'name': carDoc['title'],
 			'author': {
-				'type': 'http://schema.org/Person',
+				'type': u'http://schema.org/Person',
 				'properties': {
 					'email': carDoc['poc']['email'],
 					'memberOf': {
-						'type': 'http://schema.org/Organization',
+						'type': u'http://schema.org/Organization',
 						'properties': {
 							'name': carDoc['poc']['organization']
 						}
@@ -153,12 +155,12 @@ def to_LRMI(carDoc):
 			'keywords': carDoc['keywords'],
 			'mediaType': [carDoc['producttype']['title']],
 			'publisher': {
-				'type': 'http://schema.org/Organization',
+				'type': u'http://schema.org/Organization',
 				'properties': {
 					'name': carDoc['knowledgecenter']['title']
 				}
 			},
-			'useRightsUrl': 'http://adlnet.gov/distribution-statement/'+carDoc['distributionrestriction']['code'].lower()+'/'
+			'useRightsUrl': u'http://adlnet.gov/distribution-statement/'+carDoc['distributionrestriction']['code'].lower()+'/'
 		}
 	}
 
@@ -183,7 +185,7 @@ def to_LRMI(carDoc):
 	return document
 
 
-def recursive_compare(obj1, obj2):
+def recursive_compare(obj1, obj2, indent=0):
 
 	# base case: different types
 	if type(obj1) != type(obj2):

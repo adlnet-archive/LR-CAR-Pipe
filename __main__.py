@@ -1,4 +1,4 @@
-import argparse, json
+import argparse, json, sys
 
 import car_pipe as cp
 
@@ -19,9 +19,20 @@ def main():
 		help='Save the CAR envelope to a file')
 	parser.add_argument('--lr-file', '-lf',
 		help='Save the LR envelope to a file if generated')
+	parser.add_argument('--log-file',
+		help='Write output to file instead of stdout',
+		type=argparse.FileType('w'), default=sys.stdout)
+
 	parser.add_argument('--verbose', '-v',
 		help='Print initial and converted metadata payloads',
 		action='store_true')
+
+	parser.add_argument('--overwrite', dest='overwrite',
+		help='On conflict, replace old LR envelope with new one',
+		action='store_true', default=None)
+	parser.add_argument('--no-overwrite', dest='overwrite',
+		help='On conflict, do not push generated LR envelope',
+		action='store_false', default=None)
 
 	args = parser.parse_args()
 
@@ -56,17 +67,52 @@ def main():
 
 			# check if document already exists
 			oldDoc = cp.get_LR_from_CAR_id(cardoc['id'])
+			oldId = oldDoc['doc_ID']
+
 			if oldDoc != None:
-				response = raw_input('Document already in LR with ID "{}". Replace? '.format(oldDoc['doc_ID']))
-				if response.lower() in ['yes','y']:
-					envelope['replaces'] = [oldDoc['doc_ID']]
-					cp.publish_document(envelope)
+				if args.overwrite == None:
+
+					# compare old doc to new (minus generated fields)
+					del oldDoc['digital_signature']
+					del oldDoc['_rev']
+					del oldDoc['node_timestamp']
+					del oldDoc['create_timestamp']
+					del oldDoc['update_timestamp']
+					del oldDoc['publishing_node']
+					del oldDoc['_id']
+					del oldDoc['doc_ID']
+					comp = cp.recursive_compare(oldDoc, envelope);
+
+					# prompt the user for action
+					print 'Another document with same CAR ID already in LR ({}).'.format(oldId)
+					print 'Changes:'
+					print 'Old doc', json.dumps(comp[0], indent=4)
+					print 'New doc', json.dumps(comp[1], indent=4)
+					response = raw_input('Replace? ')
+					if response.lower() in ['yes','y']:
+						envelope['replaces'] = [oldId]
+						id = cp.publish_document(envelope)
+						if id != None:
+							print 'Published {} to LR; id {}'.format(cardoc['id'], id)
+
+				elif args.overwrite == True:
+					envelope['replaces'] = [oldId]
+					id = cp.publish_document(envelope)
+					if id != None:
+						print 'Published {} to LR; id {}'.format(cardoc['id'], id)
+
+				else:
+					print 'Document {} duplicates {}, skipping.'.format(cardoc['id'], oldDoc['doc_ID'])
+
 			else:
-				cp.publish_document(envelope)
+				id = cp.publish_document(envelope)
+				if id != None:
+					print 'Published {} to LR; id {}'.format(cardoc['id'], id)
 
 	print
 	print
 	print 'Done'
+
 
 if __name__ == '__main__':
 	main()
