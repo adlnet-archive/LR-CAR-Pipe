@@ -12,7 +12,7 @@ def main():
 		choices=['view','convert','publish'])
 
 	parser.add_argument('doc_id',
-		help='A CAR document ID')
+		help='A CAR document ID, "all", or "updates"')
 	# key = '100.ATSC/0721EED9-F5C8-493D-93D7-D51EB0BB2A24-1335889302182'
 
 	parser.add_argument('--car-file', '-cf',

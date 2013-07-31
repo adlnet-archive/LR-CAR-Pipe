@@ -182,3 +182,38 @@ def to_LRMI(carDoc):
 
 	return document
 
+
+def recursive_compare(obj1, obj2):
+
+	# base case: different types
+	if type(obj1) != type(obj2):
+		return obj1, obj2
+
+	# base case: equality
+	elif obj1 == obj2:
+		return ()
+
+	# recursive case: dictionaries
+	elif isinstance(obj1, dict):
+
+		diff1, diff2 = {}, {}
+		for key in set(obj1.keys()) | set(obj2.keys()):
+
+			# get matching keys
+			child1, child2 = None, None
+			if key in obj1:
+				child1 = obj1[key]
+			if key in obj2:
+				child2 = obj2[key]
+
+			# compare children, add to diff
+			result = recursive_compare(child1, child2)
+			if len(result) != 0:
+				diff1[key], diff2[key] = result
+
+		return diff1, diff2
+
+	# base case: primitive not equal
+	else:
+		return obj1, obj2
+
