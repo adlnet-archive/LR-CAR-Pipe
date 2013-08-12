@@ -19,9 +19,9 @@ def main():
 		help='Save the CAR envelope to a file')
 	parser.add_argument('--lr-file', '-lf',
 		help='Save the LR envelope to a file if generated')
-	parser.add_argument('--log-file',
-		help='Write output to file instead of stdout',
-		type=argparse.FileType('w'), default=sys.stdout)
+	#parser.add_argument('--log-file',
+	#	help='Write output to file instead of stdout',
+	#	type=argparse.FileType('w'), default=sys.stdout)
 
 	parser.add_argument('--verbose', '-v',
 		help='Print initial and converted metadata payloads',
@@ -85,7 +85,7 @@ def main():
 
 					# prompt the user for action
 					print 'Another document with same CAR ID already in LR ({}).'.format(oldId)
-					print 'Changes:'
+					print 'Additions:'
 					print 'Old doc', json.dumps(comp[0], indent=4)
 					print 'New doc', json.dumps(comp[1], indent=4)
 					response = raw_input('Replace? ')
