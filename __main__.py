@@ -2,6 +2,10 @@ import argparse, json, sys
 
 import car_pipe as cp
 
+# the list of documents to publish
+car_docs = []
+publish_payload = []
+
 def main():
 
 	# parse arguments
@@ -36,10 +40,40 @@ def main():
 
 	args = parser.parse_args()
 
-	# all commands do this; view only does this
+	# parse and process document id
+	if args.doc_id.lower() == 'all':
+		pass
 
-	# retrieve CAR metadata
-	cardoc = cp.get_CAR_document(args.doc_id)
+	elif args.doc_id.lower() == 'updates':
+		pass
+	
+	else:
+		car_docs.append( cp.get_CAR_document(args.doc_id) )
+		processDocument(car_docs[-1], args)
+
+	# publish the accumulated payload
+	status = cp.publish_documents(publish_payload)
+
+	# print status messages
+	for i,doc_status in enumerate(status['document_results']):
+		if doc_status['OK']:
+			print 'Document', car_docs[i]['id'], 'published as', doc_status['doc_ID']
+		else:
+			print 'Document', car_docs[i]['id'], 'failed:', doc_status['error']
+
+	print
+	if status['OK']:
+		print 'Publish successful'
+	else:
+		print 'Error:', status['error']
+
+	print
+	print 'Done'
+
+
+def processDocument( cardoc, args ):
+
+	# all commands do this; view only does this
 
 	# dump metadata to file and/or/nor screen
 	if args.car_file != None:
@@ -67,9 +101,10 @@ def main():
 
 			# check if document already exists
 			oldDoc = cp.get_LR_from_CAR_id(cardoc['id'])
-			oldId = oldDoc['doc_ID']
 
 			if oldDoc != None:
+				oldId = oldDoc['doc_ID']
+
 				if args.overwrite == None:
 
 					# compare old doc to new (minus generated fields)
@@ -91,27 +126,27 @@ def main():
 					response = raw_input('Replace? ')
 					if response.lower() in ['yes','y']:
 						envelope['replaces'] = [oldId]
-						id = cp.publish_document(envelope)
-						if id != None:
-							print 'Published {} to LR; id {}'.format(cardoc['id'], id)
+						publish_payload.append(envelope)
+						#id = cp.publish_document(envelope)
+						#if id != None:
+						#	print 'Published {} to LR; id {}'.format(cardoc['id'], id)
 
 				elif args.overwrite == True:
 					envelope['replaces'] = [oldId]
-					id = cp.publish_document(envelope)
-					if id != None:
-						print 'Published {} to LR; id {}'.format(cardoc['id'], id)
+					publish_payload.append(envelope)
+					#id = cp.publish_document(envelope)
+					#if id != None:
+					#	print 'Published {} to LR; id {}'.format(cardoc['id'], id)
 
 				else:
 					print 'Document {} duplicates {}, skipping.'.format(cardoc['id'], oldDoc['doc_ID'])
 
 			else:
-				id = cp.publish_document(envelope)
-				if id != None:
-					print 'Published {} to LR; id {}'.format(cardoc['id'], id)
+				publish_payload.append(envelope)
+				#id = cp.publish_document(envelope)
+				#if id != None:
+				#	print 'Published {} to LR; id {}'.format(cardoc['id'], id)
 
-	print
-	print
-	print 'Done'
 
 
 if __name__ == '__main__':

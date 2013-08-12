@@ -50,10 +50,10 @@ def dump_to_file(filename, content):
 	ofp.close()
 
 
-def get_CAR_documents():
+def get_CAR_documents(since = None):
 	'''get sample set of CAR metadata'''
 
-	field_list = 'id,status,title,summary,aliases,approvaldate,postdate,discoverable,new,restricted,official,catalogtype,producttype,knowledgecenter,distributionrestriction,poc,keyword,jobspeciality,links,formats,download'
+	field_list = 'id,status,identifier,title,summary,postdate,catalogtype,producttype,knowledgecenter,distributionrestriction,poc,keywords,jobspeciality,formats'
 	docs = getData('/catalogitems', distributionrestriction='A', status='R', field_list=field_list, pagesize=25)
 	for doc in docs['catalogitems']:
 		ofp = open('data/'+doc['id'].replace('/','_')+'.json', 'w')
@@ -61,10 +61,10 @@ def get_CAR_documents():
 		ofp.close()
 
 
-def publish_document(doc):
+def publish_documents(docs):
 
 	publish_packet = {
-		'documents': [doc]
+		'documents': docs
 	}
 	params = {
 		'oauth_version': '1.0',
@@ -81,11 +81,12 @@ def publish_document(doc):
 		body = json.dumps(publish_packet),
 		headers = {'Content-Type': 'application/json'}
 	)
-	
-	if content['OK'] == True:
-		return content['document_results'][0]['doc_ID']
-	else:
-		return None
+
+	return json.loads(content)
+	#if content['OK'] == True:
+	#	return [doc['doc_ID'] for doc in content['document_results']]
+	#else:
+	#	return None
 
 
 def get_LR_from_CAR_id(id):
