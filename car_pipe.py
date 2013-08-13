@@ -20,7 +20,7 @@ def get_data(page, mime = 'application/json', **kwargs):
 	if len(kwargs) > 0:
 		url += '?' + urlencode(kwargs)
 
-	#print 'Retrieving', url
+	print 'Retrieving', url
 	request = Request(url, headers = {'Accept': mime})
 	try:
 		io = urlopen(request)
@@ -50,15 +50,41 @@ def dump_to_file(filename, content):
 	ofp.close()
 
 
-def get_CAR_documents(since = None):
+def get_CAR_documents(days_old = None, link = None):
 	'''get sample set of CAR metadata'''
 
+	# retrieve documents
 	field_list = 'id,status,identifier,title,summary,postdate,catalogtype,producttype,knowledgecenter,distributionrestriction,poc,keywords,jobspeciality,formats'
-	docs = getData('/catalogitems', distributionrestriction='A', status='R', field_list=field_list, pagesize=25)
-	for doc in docs['catalogitems']:
-		ofp = open('data/'+doc['id'].replace('/','_')+'.json', 'w')
-		ofp.write( json.dumps(doc, indent=4) )
-		ofp.close()
+	if link == None:
+		if days_old == None:
+			docs = get_data('/catalogitems', distributionrestriction='A', status='R', field_list=field_list, pagesize=25)
+		else:
+			# format date
+			cutoff = dt.date.today() - dt.timedelta(days_old)
+			cutoff_str = cutoff.strftime('%m/%d/%Y')
+			docs = get_data('/catalogitems', distributionrestriction='A', status='R', field_list=field_list, pagesize=25, respect_date=cutoff_str)
+			
+	else:
+		docs = get_data(link)
+
+	# find link to next page
+	#print json.dumps(docs, indent=4)
+	nextlink = ''
+	for l in docs['links']:
+		if l['rel'] == 'next':
+			nextlink = l['href']
+			break
+
+	# retrieve following pages and return
+	if nextlink != '':
+		return docs['catalogitems'] + get_CAR_documents(link = nextlink)
+	else:
+		return docs['catalogitems']
+
+	#for doc in docs['catalogitems']:
+	#	ofp = open('data/'+doc['id'].replace('/','_')+'.json', 'w')
+	#	ofp.write( json.dumps(doc, indent=4) )
+	#	ofp.close()
 
 
 def publish_documents(docs):

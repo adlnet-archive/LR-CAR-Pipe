@@ -48,7 +48,7 @@ def main():
 		pass
 	
 	else:
-		car_docs.append( cp.get_CAR_document(args.doc_id) )
+		car_docs = [cp.get_CAR_document(args.doc_id)]
 		processDocument(car_docs[-1], args)
 
 	# publish the accumulated payload
