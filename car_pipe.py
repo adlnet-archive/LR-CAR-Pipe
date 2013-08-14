@@ -15,8 +15,8 @@ def get_data(page, mime = 'application/json', retries=0, **kwargs):
 	else:
 		url = page
 
-	print 'Retrieving', url
-	response = requests.get(url, params=kwargs, headers={'content-type': mime})
+	response = requests.get(url, params=kwargs, headers={'accept': mime}, verify=False)
+	print 'Retrieving', response.url
 
 	if response.status_code == requests.codes.ok:
 		data = response.json()
@@ -66,6 +66,8 @@ def get_CAR_documents(days_old = None, link = None):
 	# check for errors in fetching data
 	if docs == None:
 		return []
+
+	print 'Retrieved page {0[currentPage]} of {0[totalPages]}'.format(docs)
 
 	# find link to next page
 	#print json.dumps(docs, indent=4)
