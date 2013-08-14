@@ -38,6 +38,13 @@ def main():
 		help='On conflict, do not push generated LR envelope',
 		action='store_false', default=None)
 
+	parser.add_argument('--publish-chunk-size', '-c',
+		help='For "all" or "updates", select number of documents contained in a single push to the LR',
+		type=int, default=50)
+	parser.add_argument('--update-window', '-w',
+		help='For "updates", publish all documents updated within UPDATE_WINDOW days',
+		type=int, default=2)
+
 	args = parser.parse_args()
 
 	# parse and process document id
@@ -48,7 +55,7 @@ def main():
 
 
 	elif args.doc_id.lower() == 'updates':
-		car_docs = cp.get_CAR_documents(days_old=1)
+		car_docs = cp.get_CAR_documents(days_old=args.update_window)
 		for doc in car_docs:
 			processDocument(doc, args)
 	
@@ -60,7 +67,8 @@ def main():
 	total_ok = True
 	total_error = []
 
-	for batch in [publish_payload[i:i+50] for i in range(0,len(publish_payload),50)]:
+	chunk = args.publish_chunk_size
+	for batch in [publish_payload[i:i+chunk] for i in range(0,len(publish_payload),chunk)]:
 		status = cp.publish_documents(publish_payload)
 
 		# print status messages
@@ -74,11 +82,13 @@ def main():
 		if not status['OK']:
 			total_error.append( status['error'] )
 
-	print
-	if total_ok:
-		print 'Publish successful'
-	else:
-		print 'Error:', total_error
+	if len(publish_payload) > 0:
+		if total_ok:
+			print
+			print 'Publish successful'
+		else:
+			print
+			print 'Error:', total_error
 
 	print
 	print 'Done'
