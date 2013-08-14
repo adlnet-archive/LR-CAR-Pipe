@@ -20,7 +20,7 @@ def get_data(page, mime = 'application/json', **kwargs):
 	if len(kwargs) > 0:
 		url += '?' + urlencode(kwargs)
 
-	print 'Retrieving', url
+	#print 'Retrieving', url
 	request = Request(url, headers = {'Accept': mime})
 	try:
 		io = urlopen(request)
@@ -220,7 +220,7 @@ def recursive_compare(obj1, obj2, indent=0):
 
 	# base case: equality
 	elif obj1 == obj2:
-		return ()
+		return ({},{})
 
 	# recursive case: dictionaries
 	elif isinstance(obj1, dict):

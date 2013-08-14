@@ -128,31 +128,38 @@ def processDocument( cardoc, args ):
 			if oldDoc != None:
 				oldId = oldDoc['doc_ID']
 
+				# compare old doc to new (minus generated fields)
+				del oldDoc['digital_signature']
+				del oldDoc['_rev']
+				del oldDoc['node_timestamp']
+				del oldDoc['create_timestamp']
+				del oldDoc['update_timestamp']
+				del oldDoc['publishing_node']
+				del oldDoc['_id']
+				del oldDoc['doc_ID']
+				del oldDoc['identity']['submitter']
+				del oldDoc['identity']['submitter_type']
+				del oldDoc['identity']['signer']
+				comp = cp.recursive_compare(oldDoc, envelope);
+
 				if args.overwrite == None:
 
-					# compare old doc to new (minus generated fields)
-					del oldDoc['digital_signature']
-					del oldDoc['_rev']
-					del oldDoc['node_timestamp']
-					del oldDoc['create_timestamp']
-					del oldDoc['update_timestamp']
-					del oldDoc['publishing_node']
-					del oldDoc['_id']
-					del oldDoc['doc_ID']
-					comp = cp.recursive_compare(oldDoc, envelope);
+					if comp == ({},{}):
+						print 'Document {} exactly matches {}, skipping.'.format(cardoc['id'], oldId)
 
-					# prompt the user for action
-					print 'Another document with same CAR ID already in LR ({}).'.format(oldId)
-					print 'Additions:'
-					print 'Old doc', json.dumps(comp[0], indent=4)
-					print 'New doc', json.dumps(comp[1], indent=4)
-					response = raw_input('Replace? ')
-					if response.lower() in ['yes','y']:
-						envelope['replaces'] = [oldId]
-						publish_payload.append(envelope)
-						#id = cp.publish_document(envelope)
-						#if id != None:
-						#	print 'Published {} to LR; id {}'.format(cardoc['id'], id)
+					else:
+						# prompt the user for action
+						print 'Another document with same CAR ID already in LR ({}).'.format(oldId)
+						print 'Additions:'
+						print 'Old doc', json.dumps(comp[0], indent=4)
+						print 'New doc', json.dumps(comp[1], indent=4)
+						response = raw_input('Replace? ')
+						if response.lower() in ['yes','y']:
+							envelope['replaces'] = [oldId]
+							publish_payload.append(envelope)
+							#id = cp.publish_document(envelope)
+							#if id != None:
+							#	print 'Published {} to LR; id {}'.format(cardoc['id'], id)
 
 				elif args.overwrite == True:
 					envelope['replaces'] = [oldId]
