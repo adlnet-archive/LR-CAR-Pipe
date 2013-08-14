@@ -42,30 +42,43 @@ def main():
 
 	# parse and process document id
 	if args.doc_id.lower() == 'all':
-		pass
+		car_docs = cp.get_CAR_documents()
+		for doc in car_docs:
+			processDocument(doc, args)
+
 
 	elif args.doc_id.lower() == 'updates':
-		pass
+		car_docs = cp.get_CAR_documents(days_old=1)
+		for doc in car_docs:
+			processDocument(doc, args)
 	
 	else:
 		car_docs = [cp.get_CAR_document(args.doc_id)]
-		processDocument(car_docs[-1], args)
+		processDocument(car_docs[0], args)
 
-	# publish the accumulated payload
-	status = cp.publish_documents(publish_payload)
+	# publish the accumulated payload in chunks of 50
+	total_ok = True
+	total_error = []
 
-	# print status messages
-	for i,doc_status in enumerate(status['document_results']):
-		if doc_status['OK']:
-			print 'Document', car_docs[i]['id'], 'published as', doc_status['doc_ID']
-		else:
-			print 'Document', car_docs[i]['id'], 'failed:', doc_status['error']
+	for batch in [publish_payload[i:i+50] for i in range(0,len(publish_payload),50)]:
+		status = cp.publish_documents(publish_payload)
+
+		# print status messages
+		for i,doc_status in enumerate(status['document_results']):
+			if doc_status['OK']:
+				print 'Document', car_docs[i]['id'], 'published as', doc_status['doc_ID']
+			else:
+				print 'Document', car_docs[i]['id'], 'failed:', doc_status['error']
+
+		total_ok &= status['OK']
+		if not status['OK']:
+			total_error.append( status['error'] )
 
 	print
-	if status['OK']:
+	if total_ok:
 		print 'Publish successful'
 	else:
-		print 'Error:', status['error']
+		print 'Error:', total_error
 
 	print
 	print 'Done'
