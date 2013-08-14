@@ -1,6 +1,5 @@
 #!/bin/env python
-from urllib2 import Request, urlopen, URLError
-from urllib import urlencode
+import requests
 from lxml import etree
 import json
 import sys
@@ -8,7 +7,7 @@ import datetime as dt
 import time
 import oauth2 as oauth
 
-def get_data(page, mime = 'application/json', **kwargs):
+def get_data(page, mime = 'application/json', retries=0, **kwargs):
 
 	# build URL
 	if page[0] == '/':
@@ -16,23 +15,20 @@ def get_data(page, mime = 'application/json', **kwargs):
 	else:
 		url = page
 
-	# add arguments if appropriate
-	if len(kwargs) > 0:
-		url += '?' + urlencode(kwargs)
+	print 'Retrieving', url
+	response = requests.get(url, params=kwargs, headers={'content-type': mime})
 
-	#print 'Retrieving', url
-	request = Request(url, headers = {'Accept': mime})
-	try:
-		io = urlopen(request)
-		if mime == 'application/json':
-			data = json.loads(io.read())
-		elif mime == 'application/xml':
-			data = etree.parse(io)
-		else:
-			data = io.read()
-	except Exception as e:
-		print e
-		return
+	if response.status_code == requests.codes.ok:
+		data = response.json()
+	elif response.status_code == requests.codes.not_found:
+		print '404 Not Found'
+		data = None
+	elif retries < 3:
+		print 'Code {}, retrying'.format(response.status_code)
+		data = get_data(url, mime=mime, retries=retries+1)
+	else:
+		print 'Request failed too many times, aborting'
+		data = None
 
 	return data
 
@@ -66,6 +62,10 @@ def get_CAR_documents(days_old = None, link = None):
 			
 	else:
 		docs = get_data(link)
+
+	# check for errors in fetching data
+	if docs == None:
+		return []
 
 	# find link to next page
 	#print json.dumps(docs, indent=4)
