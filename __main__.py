@@ -114,7 +114,8 @@ def processDocument( cardoc, args ):
 			envelope = cp.to_LR(lrmi, car_id=cardoc['id'])
 		except KeyError as e:
 			print 'Problem parsing {}, dumping to file and continuing'.format(cardoc['id'])
-			cp.dump_to_file( cardoc['id']+'.json', cardoc )
+			filename = cardoc['id'].split('/')[-1] + '.json'
+			cp.dump_to_file( filename, cardoc )
 			return
 		
 		# dump metadata to file and/or/nor screen
