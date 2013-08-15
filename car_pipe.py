@@ -24,7 +24,8 @@ def get_data(page, mime = 'application/json', retries=0, **kwargs):
 		print '404 Not Found'
 		data = None
 	elif retries < 3:
-		print 'Code {}, retrying'.format(response.status_code)
+		print 'Code {}, waiting 5 seconds then retrying'.format(response.status_code)
+		time.sleep(5)
 		data = get_data(url, mime=mime, retries=retries+1)
 	else:
 		print 'Request failed too many times, aborting'

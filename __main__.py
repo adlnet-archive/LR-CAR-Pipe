@@ -109,8 +109,13 @@ def processDocument( cardoc, args ):
 	if args.command in ['convert','publish']:
 		
 		# convert CAR metadata to LR metadata
-		lrmi = cp.to_LRMI(cardoc)
-		envelope = cp.to_LR(lrmi, car_id=cardoc['id'])
+		try:
+			lrmi = cp.to_LRMI(cardoc)
+			envelope = cp.to_LR(lrmi, car_id=cardoc['id'])
+		except KeyError as e:
+			print 'Problem parsing {}, dumping to file and continuing'.format(cardoc['id'])
+			cp.dump_to_file( cardoc['id']+'.json', cardoc )
+			return
 		
 		# dump metadata to file and/or/nor screen
 		if args.lr_file != None:
